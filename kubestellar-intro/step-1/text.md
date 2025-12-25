@@ -4,8 +4,9 @@ KubeStellar requires several CLI tools. Let's install them:
 
 ## Install KubeFlex CLI (kflex)
 
-We'll install kflex directly from GitHub releases:
-h
+We'll install kflex using a reliable method that works in Killercoda:
+
+```bash
 # Remove any existing corrupted binary
 sudo rm -f /usr/local/bin/kflex 2>/dev/null || true
 
@@ -42,26 +43,23 @@ kflex version
 
 ## Install OCM CLI (clusteradm)
 
+```bash
 bash <(curl -L https://raw.githubusercontent.com/open-cluster-management-io/clusteradm/main/install.sh) 0.10.1
 clusteradm version
 ```{{exec}}
 
 ## Install Helm
-sh
+
+```bash
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 helm version
 ```{{exec}}
 
 ## Verify kubectl
 
+```bash
 kubectl version --client
 kubectl get nodes
 ```{{exec}}
 
-Once all tools are installed, proceed to the next step!Changes:
-- Removed the script method and fallback logic
-- Uses direct manual installation
-- Clearer error handling
-- Simpler flow
-
-Copy the entire block above into your `step1/text.md` file. This should execute successfully in Killercoda.
+Once all tools are installed, proceed to the next step!
