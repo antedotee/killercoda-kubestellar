@@ -4,10 +4,19 @@ KubeStellar requires several CLI tools. Let's install them:
 
 ## Install KubeFlex CLI (kflex)
 
+Use the official installation script which handles architecture detection:
+
 ```bash
-curl -L https://github.com/kubestellar/kubeflex/releases/latest/download/kflex-linux-amd64 -o kflex
-chmod +x kflex
-sudo mv kflex /usr/local/bin/
+# Remove any existing corrupted binary
+sudo rm -f /usr/local/bin/kflex 2>/dev/null || true
+
+# Install using official script
+curl -sSL https://raw.githubusercontent.com/kubestellar/kubeflex/main/scripts/install-kubeflex.sh | bash -s -- --ensure-folder /tmp/kubeflex --strip-bin
+sudo mv /tmp/kubeflex/kflex /usr/local/bin/
+sudo chmod +x /usr/local/bin/kflex
+rm -rf /tmp/kubeflex
+
+# Verify installation
 kflex version
 ```{{exec}}
 

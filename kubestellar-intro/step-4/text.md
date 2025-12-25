@@ -63,6 +63,18 @@ spec:
 EOF
 ```{{exec}}
 
+## Wait for Propagation
+
+Give KubeStellar a moment to propagate the workload:
+
+```bash
+echo "Waiting for workload propagation..."
+sleep 15
+
+# Check deployment status
+kubectl --context wds1 get deployment nginx-deployment -n nginx
+```{{exec}}
+
 ## Verify Multi-Cluster Deployment
 
 Check that nginx is deployed in **both** clusters:
@@ -74,14 +86,6 @@ kubectl --context cluster1 get deployments -n nginx
 echo "=== Checking cluster2 ==="
 kubectl --context cluster2 get deployments -n nginx
 ```{{exec}}
-
-## The Magic of KubeStellar
-
-Notice what happened:
-1. You deployed **once** to the WDS
-2. KubeStellar automatically deployed to **both** clusters
-3. No need to modify your Kubernetes objects
-4. Works with standard kubectl commands
 
 ## Check Pod Status
 
@@ -98,5 +102,13 @@ See how KubeStellar resolved the BindingPolicy:
 kubectl --context wds1 get bindings
 kubectl --context wds1 describe binding nginx-bpolicy
 ```{{exec}}
+
+## The Magic of KubeStellar
+
+Notice what happened:
+1. You deployed **once** to the WDS
+2. KubeStellar automatically deployed to **both** clusters
+3. No need to modify your Kubernetes objects
+4. Works with standard kubectl commands
 
 🎉 **Congratulations!** You've successfully deployed a workload across multiple clusters using KubeStellar!

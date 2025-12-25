@@ -16,25 +16,32 @@ kubectl config rename-context kind-cluster2 cluster2
 Get the join token and register both clusters:
 
 ```bash
-clusteradm --context its1 get token | grep '^clusteradm join' | \
-    sed "s/<cluster_name>/cluster1/" | \
-    awk '{print $0 " --context cluster1 --singleton --force-internal-endpoint-lookup"}' | sh
+# Register cluster1
+TOKEN=$(clusteradm --context its1 get token 2>/dev/null | grep '^clusteradm join' | head -1)
+if [ -z "$TOKEN" ]; then
+    echo "Error: Could not get join token"
+    exit 1
+fi
 
-clusteradm --context its1 get token | grep '^clusteradm join' | \
-    sed "s/<cluster_name>/cluster2/" | \
-    awk '{print $0 " --context cluster2 --singleton --force-internal-endpoint-lookup"}' | sh
+echo "$TOKEN" | sed "s/<cluster_name>/cluster1/" | awk '{print $0 " --context cluster1 --singleton --force-internal-endpoint-lookup"}' | sh
+
+# Register cluster2
+echo "$TOKEN" | sed "s/<cluster_name>/cluster2/" | awk '{print $0 " --context cluster2 --singleton --force-internal-endpoint-lookup"}' | sh
 ```{{exec}}
 
-## Approve Certificate Signing Requests
+## Wait for Certificate Signing Requests
 
 Wait for CSRs to appear, then approve them:
 
 ```bash
-sleep 10
-kubectl --context its1 get csr
+echo "Waiting for CSRs to appear..."
+timeout 120 bash -c 'until [ $(kubectl --context its1 get csr 2>/dev/null | grep -c "cluster1\|cluster2") -ge 2 ]; do echo "Waiting for CSRs..."; sleep 5; done'
 
+# Approve CSRs
 clusteradm --context its1 accept --clusters cluster1
 clusteradm --context its1 accept --clusters cluster2
+
+echo "✅ Clusters registered!"
 ```{{exec}}
 
 ## Label the Clusters
@@ -42,8 +49,8 @@ clusteradm --context its1 accept --clusters cluster2
 Label clusters for selection by binding policies:
 
 ```bash
-kubectl --context its1 label managedcluster cluster1 location-group=edge name=cluster1
-kubectl --context its1 label managedcluster cluster2 location-group=edge name=cluster2
+kubectl --context its1 label managedcluster cluster1 location-group=edge name=cluster1 --overwrite
+kubectl --context its1 label managedcluster cluster2 location-group=edge name=cluster2 --overwrite
 ```{{exec}}
 
 ## Verify Cluster Registration
