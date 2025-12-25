@@ -1,0 +1,40 @@
+{
+    "title": "KubeStellar: Multi-Cluster Configuration Management",
+    "description": "Learn how to deploy workloads across multiple Kubernetes clusters using KubeStellar's simple binding policies",
+    "details": {
+      "intro": {
+        "text": "intro.md"
+      },
+      "steps": [
+        {
+          "title": "Install Prerequisites",
+          "text": "step-1/text.md",
+          "verify": "step-1/verify.sh"
+        },
+        {
+          "title": "Set Up KubeStellar",
+          "text": "step-2/text.md",
+          "verify": "step-2/verify.sh"
+        },
+        {
+          "title": "Create Workload Execution Clusters",
+          "text": "step-3/text.md",
+          "verify": "step-3/verify.sh"
+        },
+        {
+          "title": "Deploy Multi-Cluster Workload",
+          "text": "step-4/text.md",
+          "verify": "step-4/verify.sh"
+        }
+      ],
+      "finish": {
+        "text": "finish.md"
+      }
+    },
+    "backend": {
+      "imageid": "kubernetes-kubeadm-2nodes"
+    },
+    "environment": {
+      "uilayout": "terminal"
+    }
+  }
