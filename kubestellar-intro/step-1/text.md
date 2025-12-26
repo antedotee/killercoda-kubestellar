@@ -1,47 +1,24 @@
 # Step 1: Install Prerequisites
 
-KubeStellar requires several CLI tools. Let's install them:
+KubeStellar requires several CLI tools. Let's install them following the official documentation.
 
 ## Install KubeFlex CLI (kflex)
 
-We'll install kflex using a reliable method that works in Killercoda:
+Following the [official kubeflex installation instructions](https://github.com/kubestellar/kubeflex/blob/main/docs/users.md#installation):
 
 ```bash
-# Remove any existing corrupted binary
-sudo rm -f /usr/local/bin/kflex 2>/dev/null || true
-
-# Detect architecture
-ARCH=$(uname -m)
-if [ "$ARCH" = "x86_64" ]; then
-    ARCH="amd64"
-elif [ "$ARCH" = "aarch64" ]; then
-    ARCH="arm64"
-else
-    echo "Unsupported architecture: $ARCH"
-    exit 1
-fi
-
-# Get latest version
-echo "Fetching latest kflex version..."
-VERSION=$(curl -s https://api.github.com/repos/kubestellar/kubeflex/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-echo "Installing kflex ${VERSION} for ${ARCH}..."
-
-# Download and extract
-curl -L -f -o kubeflex.tar.gz "https://github.com/kubestellar/kubeflex/releases/download/${VERSION}/kubeflex_${VERSION//v}_linux_${ARCH}.tar.gz"
-tar -xzf kubeflex.tar.gz
-
-# Install to system PATH
-sudo mv bin/kflex /usr/local/bin/
-sudo chmod +x /usr/local/bin/kflex
-
-# Cleanup
-rm -rf bin kubeflex.tar.gz
-
-# Verify installation
+OS_ARCH=linux_amd64
+LATEST_RELEASE_URL=$(curl -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/kubestellar/kubeflex/releases/latest | jq -r '.assets[] | select(.name | test("'${OS_ARCH}'")) | .browser_download_url')
+curl -LO $LATEST_RELEASE_URL
+tar xzvf $(basename $LATEST_RELEASE_URL)
+sudo install -o root -g root -m 0755 bin/kflex /usr/local/bin/kflex
+rm -rf bin $(basename $LATEST_RELEASE_URL)
 kflex version
 ```{{exec}}
 
 ## Install OCM CLI (clusteradm)
+
+Following the [official KubeStellar prerequisites](https://kubestellar.io/docs/direct/pre-reqs/):
 
 ```bash
 bash <(curl -L https://raw.githubusercontent.com/open-cluster-management-io/clusteradm/main/install.sh) 0.10.1

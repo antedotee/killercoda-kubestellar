@@ -8,7 +8,6 @@ use binding policies to deploy them across multiple clusters.
 - How to set up KubeStellar with KubeFlex
 - How to create and register workload execution clusters
 - How to deploy workloads across multiple clusters using BindingPolicies
-- How KubeStellar works with kubectl, Helm, and ArgoCD
 
 ## Prerequisites:
 This environment comes with:

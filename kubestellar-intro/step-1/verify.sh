@@ -9,10 +9,8 @@ if ! command -v kflex &> /dev/null; then
     exit 1
 fi
 
-# Verify kflex is executable and not corrupted
 if ! kflex version &> /dev/null; then
-    echo "❌ kflex binary is corrupted or not executable"
-    file $(which kflex) || echo "Cannot determine file type"
+    echo "❌ kflex not working"
     exit 1
 fi
 

@@ -1,6 +1,6 @@
 # Step 3: Create Workload Execution Clusters
 
-We'll create two kind clusters to serve as workload execution clusters (WECs).
+Following the [official getting started guide](https://kubestellar.io/docs/direct/get-started/#create-and-register-two-workload-execution-clusters).
 
 ## Create Two Kind Clusters
 
@@ -16,17 +16,11 @@ kubectl config rename-context kind-cluster2 cluster2
 Get the join token and register both clusters:
 
 ```bash
-# Register cluster1
-TOKEN=$(clusteradm --context its1 get token 2>/dev/null | grep '^clusteradm join' | head -1)
-if [ -z "$TOKEN" ]; then
-    echo "Error: Could not get join token"
-    exit 1
-fi
-
-echo "$TOKEN" | sed "s/<cluster_name>/cluster1/" | awk '{print $0 " --context cluster1 --singleton --force-internal-endpoint-lookup"}' | sh
-
-# Register cluster2
-echo "$TOKEN" | sed "s/<cluster_name>/cluster2/" | awk '{print $0 " --context cluster2 --singleton --force-internal-endpoint-lookup"}' | sh
+flags="--force-internal-endpoint-lookup"
+clusters=(cluster1 cluster2)
+for cluster in "${clusters[@]}"; do
+   clusteradm --context its1 get token | grep '^clusteradm join' | sed "s/<cluster_name>/${cluster}/" | awk '{print $0 " --context '${cluster}' --singleton '${flags}'"}' | sh
+done
 ```{{exec}}
 
 ## Wait for Certificate Signing Requests
@@ -35,13 +29,14 @@ Wait for CSRs to appear, then approve them:
 
 ```bash
 echo "Waiting for CSRs to appear..."
-timeout 120 bash -c 'until [ $(kubectl --context its1 get csr 2>/dev/null | grep -c "cluster1\|cluster2") -ge 2 ]; do echo "Waiting for CSRs..."; sleep 5; done'
+while [ $(kubectl --context its1 get csr 2>/dev/null | grep -c "cluster1\|cluster2") -lt 2 ]; do
+    echo "Waiting for CSRs..."
+    sleep 5
+done
 
 # Approve CSRs
 clusteradm --context its1 accept --clusters cluster1
 clusteradm --context its1 accept --clusters cluster2
-
-echo "✅ Clusters registered!"
 ```{{exec}}
 
 ## Label the Clusters

@@ -68,10 +68,7 @@ EOF
 Give KubeStellar a moment to propagate the workload:
 
 ```bash
-echo "Waiting for workload propagation..."
 sleep 15
-
-# Check deployment status
 kubectl --context wds1 get deployment nginx-deployment -n nginx
 ```{{exec}}
 
@@ -102,13 +99,5 @@ See how KubeStellar resolved the BindingPolicy:
 kubectl --context wds1 get bindings
 kubectl --context wds1 describe binding nginx-bpolicy
 ```{{exec}}
-
-## The Magic of KubeStellar
-
-Notice what happened:
-1. You deployed **once** to the WDS
-2. KubeStellar automatically deployed to **both** clusters
-3. No need to modify your Kubernetes objects
-4. Works with standard kubectl commands
 
 🎉 **Congratulations!** You've successfully deployed a workload across multiple clusters using KubeStellar!
