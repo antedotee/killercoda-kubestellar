@@ -20,20 +20,9 @@ helm upgrade --install ks-core oci://ghcr.io/kubestellar/kubestellar/core-chart 
     --set verbosity.default=5
 ```{{exec}}
 
-## Get Kubeconfig Contexts
-
-After the Helm chart installs, get the contexts for the control planes:
-
-```bash
-kubectl config use-context controlplane
-kflex ctx --set-current-for-hosting
-kflex ctx --overwrite-existing-context wds1
-kflex ctx --overwrite-existing-context its1
-```{{exec}}
-
 ## Wait for Control Planes to Be Ready
 
-Wait for the control planes to sync and become ready:
+Before getting contexts, we need to wait for the control planes to be created and ready:
 
 ```bash
 echo "Waiting for control planes to sync..."
@@ -43,6 +32,16 @@ kubectl wait controlplane.tenancy.kflex.kubestellar.org/its1 --for condition=Syn
 echo "Waiting for control planes to be ready..."
 kubectl wait controlplane.tenancy.kflex.kubestellar.org/wds1 --for condition=Ready --timeout=600s
 kubectl wait controlplane.tenancy.kflex.kubestellar.org/its1 --for condition=Ready --timeout=600s
+```{{exec}}
+
+## Get Kubeconfig Contexts
+
+Now that the control planes are ready, we can get their contexts:
+
+```bash
+kflex ctx --set-current-for-hosting
+kflex ctx --overwrite-existing-context wds1
+kflex ctx --overwrite-existing-context its1
 ```{{exec}}
 
 ## Wait for ITS Initialization
