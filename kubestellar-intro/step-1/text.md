@@ -4,15 +4,13 @@ KubeStellar requires several CLI tools. Let's install them following the officia
 
 ## Install KubeFlex CLI (kflex)
 
-Following the [official kubeflex installation instructions](https://github.com/kubestellar/kubeflex/blob/main/docs/users.md#installation):
+Installing kflex version 0.9.0 to avoid breaking changes:
 
 ```bash
-OS_ARCH=linux_amd64
-LATEST_RELEASE_URL=$(curl -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/kubestellar/kubeflex/releases/latest | jq -r '.assets[] | select(.name | test("'${OS_ARCH}'")) | .browser_download_url')
-curl -LO $LATEST_RELEASE_URL
-tar xzvf $(basename $LATEST_RELEASE_URL)
+curl -Lf --max-time 30 -o kflex.tar.gz "https://github.com/kubestellar/kubeflex/releases/download/v0.9.0/kubeflex_0.9.0_linux_amd64.tar.gz" || curl -Lf --max-time 30 -o kflex.tar.gz "https://github.com/kubestellar/kubeflex/releases/download/v0.9.0/kubeflex-v0.9.0-linux-amd64.tar.gz"
+tar xzf kflex.tar.gz
 sudo install -o root -g root -m 0755 bin/kflex /usr/local/bin/kflex
-rm -rf bin $(basename $LATEST_RELEASE_URL)
+rm -rf bin kflex.tar.gz
 kflex version
 ```{{exec}}
 
