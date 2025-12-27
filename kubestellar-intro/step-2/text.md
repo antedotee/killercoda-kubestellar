@@ -41,25 +41,60 @@ timeout 180 bash -c 'until kubectl get controlplane wds1 &>/dev/null && kubectl 
 kubectl get controlplanes
 ```{{exec}}
 
+## Check KubeFlex Operator Status
+
+Before proceeding, verify the KubeFlex operator is running properly:
+
+```bash
+echo "Checking KubeFlex operator..."
+kubectl get pods -n kubeflex-system
+kubectl get deployment -n kubeflex-system
+```{{exec}}
+
+## Monitor Control Plane Progress
+
+Check the status and watch for progress. Control planes can take several minutes to become ready:
+
+```bash
+echo "Current control plane status:"
+kubectl get controlplanes -o wide
+
+echo "Checking control plane details..."
+kubectl describe controlplane wds1 | grep -A 10 "Status:"
+kubectl describe controlplane its1 | grep -A 10 "Status:"
+```{{exec}}
+
+## Wait for Control Planes to Be Ready
+
+Wait for the API servers to be ready. This can take 5-10 minutes depending on resources:
+
+```bash
+echo "Waiting for wds1 to be ready (this may take 5-10 minutes)..."
+kubectl wait controlplane.tenancy.kflex.kubestellar.org/wds1 --for condition=Ready --timeout=900s || {
+    echo "⚠️  wds1 not ready yet. Checking pod status..."
+    kubectl get pods -n wds1-system
+    kubectl describe controlplane wds1 | tail -30
+}
+
+echo "Waiting for its1 to be ready (this may take 5-10 minutes)..."
+kubectl wait controlplane.tenancy.kflex.kubestellar.org/its1 --for condition=Ready --timeout=900s || {
+    echo "⚠️  its1 not ready yet. Checking pod status..."
+    kubectl get pods -n its1-system
+    kubectl describe controlplane its1 | tail -30
+    echo "Note: vcluster control planes need worker nodes to schedule pods. Checking node status..."
+    kubectl get nodes
+}
+```{{exec}}
+
 ## Get Kubeconfig Contexts
 
-Set up contexts to access the control planes. Note: We switch to the hosting context first, then fetch the control plane contexts.
+Now that control planes are ready, set up contexts to access them:
 
 ```bash
 kubectl config use-context controlplane
 kflex ctx --set-current-for-hosting
 kflex ctx --overwrite-existing-context wds1
 kflex ctx --overwrite-existing-context its1
-```{{exec}}
-
-## Wait for Control Planes to Be Ready
-
-Wait for the API servers to be ready:
-
-```bash
-echo "Waiting for control planes to be ready..."
-kubectl wait controlplane.tenancy.kflex.kubestellar.org/wds1 --for condition=Ready --timeout=600s
-kubectl wait controlplane.tenancy.kflex.kubestellar.org/its1 --for condition=Ready --timeout=600s
 ```{{exec}}
 
 ## Wait for ITS Initialization

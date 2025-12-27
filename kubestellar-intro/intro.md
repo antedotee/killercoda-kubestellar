@@ -41,10 +41,12 @@ In this tutorial, you'll:
 ## Prerequisites
 
 This environment comes with:
-- Kubernetes cluster (2 nodes)
+- Kubernetes cluster (1 node with taint removed, ready to schedule workloads)
 - kubectl
 - Docker
 - curl
+
+**Note**: KubeStellar control planes can take 5-10 minutes to become ready. This is normal and depends on resource availability. The environment has been optimized for faster startup.
 
 We'll install KubeStellar components during the tutorial.
 

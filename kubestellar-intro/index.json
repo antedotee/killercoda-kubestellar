@@ -32,7 +32,7 @@
       }
     },
     "backend": {
-      "imageid": "kubernetes-kubeadm-2nodes"
+      "imageid": "kubernetes-kubeadm-1node-4GB"
     },
     "environment": {
       "uilayout": "terminal"
