@@ -62,6 +62,13 @@ kubectl get controlplanes -o wide
 echo "Checking control plane details..."
 kubectl describe controlplane wds1 | grep -A 10 "Status:"
 kubectl describe controlplane its1 | grep -A 10 "Status:"
+
+echo "Checking vcluster StatefulSet for its1..."
+kubectl get statefulset -n its1-system 2>/dev/null || echo "StatefulSet not created yet"
+kubectl get pods -n its1-system 2>/dev/null || echo "No pods yet"
+
+echo "Waiting for vcluster secret to be created (this is normal for vcluster type)..."
+timeout 300 bash -c 'until kubectl get secret vc-vcluster -n its1-system &>/dev/null 2>&1; do echo "Waiting for vcluster secret..."; sleep 5; done' || echo "Secret not ready yet, will retry"
 ```{{exec}}
 
 ## Wait for Control Planes to Be Ready
@@ -76,12 +83,37 @@ kubectl wait controlplane.tenancy.kflex.kubestellar.org/wds1 --for condition=Rea
     kubectl describe controlplane wds1 | tail -30
 }
 
+echo "Waiting for vcluster StatefulSet to be ready (this creates the secret)..."
+# Wait for StatefulSet to exist and be ready
+timeout 300 bash -c 'until kubectl get statefulset vcluster -n its1-system &>/dev/null 2>&1; do echo "Waiting for StatefulSet..."; sleep 5; done'
+kubectl wait statefulset/vcluster -n its1-system --for condition=ready --timeout=600s || {
+    echo "⚠️  StatefulSet not ready. Checking status..."
+    kubectl get statefulset -n its1-system
+    kubectl get pods -n its1-system
+}
+
+echo "Waiting for vcluster secret to be created..."
+timeout 180 bash -c 'until kubectl get secret vc-vcluster -n its1-system &>/dev/null 2>&1; do echo "Waiting for secret vc-vcluster..."; sleep 5; done' || {
+    echo "⚠️  Secret not created yet. Checking pods..."
+    kubectl get pods -n its1-system
+    kubectl logs -n its1-system -l app=vcluster --tail=20 2>/dev/null || echo "No logs yet"
+}
+
+echo "Now waiting for its1 to sync (after secret exists)..."
+kubectl wait controlplane.tenancy.kflex.kubestellar.org/its1 --for condition=Synced --timeout=300s || {
+    echo "⚠️  its1 sync still failing. Final diagnostics..."
+    kubectl get secret vc-vcluster -n its1-system || echo "Secret still missing"
+    kubectl describe controlplane its1 | tail -30
+}
+
 echo "Waiting for its1 to be ready (this may take 5-10 minutes)..."
 kubectl wait controlplane.tenancy.kflex.kubestellar.org/its1 --for condition=Ready --timeout=900s || {
     echo "⚠️  its1 not ready yet. Checking pod status..."
-    kubectl get pods -n its1-system
+    kubectl get pods -n its1-system -o wide
     kubectl describe controlplane its1 | tail -30
-    echo "Note: vcluster control planes need worker nodes to schedule pods. Checking node status..."
+    echo "=== Checking if secret exists ==="
+    kubectl get secret vc-vcluster -n its1-system || echo "Secret still not found"
+    echo "=== Checking node status ==="
     kubectl get nodes
 }
 ```{{exec}}
