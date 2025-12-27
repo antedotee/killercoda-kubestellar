@@ -2,11 +2,26 @@
 
 Now for the exciting part! We'll deploy an nginx application to **both clusters** using a single BindingPolicy.
 
+## Why This is Powerful
+
+With KubeStellar, you:
+- ✅ Define workloads **once** in native Kubernetes format
+- ✅ Use **simple label selectors** to choose where they deploy
+- ✅ **No wrapping**—just standard Kubernetes objects
+- ✅ Works with **kubectl, Helm, ArgoCD**—your existing tools
+
+Compare this to other solutions:
+- OCM: Requires wrapping in `ManifestWork` objects
+- ArgoCD: Requires `Application` CRDs and GitOps setup
+- Fleet: Requires `Bundle` objects and Git repositories
+
 ## Create BindingPolicy
 
-A BindingPolicy defines:
-- **WHERE**: Which clusters (using label selectors)
-- **WHAT**: Which workloads (using label selectors)
+A BindingPolicy is KubeStellar's secret sauce. It defines:
+- **WHERE**: Which clusters (using label selectors—just like Kubernetes!)
+- **WHAT**: Which workloads (using label selectors—familiar pattern!)
+
+This is the **only new concept** you need to learn, and it uses patterns you already know!
 
 ```bash
 kubectl --context wds1 apply -f - <<EOF

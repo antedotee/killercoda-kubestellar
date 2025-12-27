@@ -1,6 +1,15 @@
-# Step 2: Set Up KubeStellar
+# Step 2: Set Up KubeStellar Core
 
-Following the [official KubeStellar getting started guide](https://kubestellar.io/docs/direct/get-started/).
+## What Makes KubeStellar Different?
+
+Unlike other multi-cluster solutions that require wrapping workloads or learning new APIs, **KubeStellar lets you work with pure Kubernetes objects**. You define workloads once in their native format, then use simple label-based binding policies to deploy them across clusters. No wrapping, no bundling, no new APIs to learn—just Kubernetes as you know it.
+
+**Key Advantages:**
+- ✅ **Pure Kubernetes**: Deploy standard Kubernetes objects without modification
+- ✅ **Simple Policies**: Use familiar label selectors to define where workloads go
+- ✅ **No Wrapping**: Unlike OCM ManifestWorks or ArgoCD Applications, objects stay in native format
+- ✅ **Works with kubectl, Helm, ArgoCD**: Use your existing tools and workflows
+- ✅ **Dynamic**: Add/remove clusters and policies without downtime
 
 ## Set the Version
 
@@ -10,7 +19,9 @@ export kubestellar_version=0.29.0
 
 ## Install KubeStellar Core using Helm Chart
 
-The Core Helm chart installs both KubeFlex operator and KubeStellar components:
+The Core Helm chart installs both KubeFlex operator and KubeStellar components. This creates two control planes:
+- **ITS (Inventory and Transport Space)**: Manages cluster inventory and transports workloads
+- **WDS (Workload Description Space)**: Where you define workloads and binding policies
 
 ```bash
 helm upgrade --install ks-core oci://ghcr.io/kubestellar/kubestellar/core-chart \
@@ -20,33 +31,40 @@ helm upgrade --install ks-core oci://ghcr.io/kubestellar/kubestellar/core-chart 
     --set verbosity.default=5
 ```{{exec}}
 
-## Wait for Control Planes to Be Ready
+## Wait for Control Planes to Be Created
 
-Before getting contexts, we need to wait for the control planes to be created and ready:
+Wait for the Helm chart to create the control plane resources:
 
 ```bash
-echo "Waiting for control planes to sync..."
-kubectl wait controlplane.tenancy.kflex.kubestellar.org/wds1 --for condition=Synced --timeout=300s
-kubectl wait controlplane.tenancy.kflex.kubestellar.org/its1 --for condition=Synced --timeout=300s
-
-echo "Waiting for control planes to be ready..."
-kubectl wait controlplane.tenancy.kflex.kubestellar.org/wds1 --for condition=Ready --timeout=600s
-kubectl wait controlplane.tenancy.kflex.kubestellar.org/its1 --for condition=Ready --timeout=600s
+echo "Waiting for control planes to be created..."
+timeout 180 bash -c 'until kubectl get controlplane wds1 &>/dev/null && kubectl get controlplane its1 &>/dev/null; do echo "Waiting for control planes..."; sleep 5; done'
+kubectl get controlplanes
 ```{{exec}}
 
 ## Get Kubeconfig Contexts
 
-Now that the control planes are ready, we can get their contexts:
+Set up contexts to access the control planes. Note: We switch to the hosting context first, then fetch the control plane contexts.
 
 ```bash
+kubectl config use-context controlplane
 kflex ctx --set-current-for-hosting
 kflex ctx --overwrite-existing-context wds1
 kflex ctx --overwrite-existing-context its1
 ```{{exec}}
 
+## Wait for Control Planes to Be Ready
+
+Wait for the API servers to be ready:
+
+```bash
+echo "Waiting for control planes to be ready..."
+kubectl wait controlplane.tenancy.kflex.kubestellar.org/wds1 --for condition=Ready --timeout=600s
+kubectl wait controlplane.tenancy.kflex.kubestellar.org/its1 --for condition=Ready --timeout=600s
+```{{exec}}
+
 ## Wait for ITS Initialization
 
-The ITS needs to be initialized as an OCM hub:
+The ITS needs to be initialized as an OCM hub. This sets up the cluster management infrastructure:
 
 ```bash
 echo "Waiting for ITS hub initialization..."
@@ -60,9 +78,11 @@ kubectl wait -n its1-system job.batch/install-status-addon --for condition=Compl
 
 ## Verify Setup
 
+Verify that everything is working:
+
 ```bash
 kubectl --context its1 get managedclusters
 kubectl --context wds1 get bindingpolicies
 ```{{exec}}
 
-Great! KubeStellar is now set up and ready to use.
+Perfect! KubeStellar Core is now set up. The ITS is ready to manage clusters, and the WDS is ready for your workloads and binding policies.
