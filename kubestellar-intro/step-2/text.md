@@ -19,16 +19,17 @@ export kubestellar_version=0.29.0
 
 ## Install nginx Ingress with SSL Passthrough
 
-KubeStellar requires nginx ingress with SSL passthrough enabled on the hosting cluster. Let's install and configure it using Helm:
+KubeStellar requires nginx ingress with SSL passthrough enabled on the hosting cluster. Let's install and configure it using Helm with reduced CPU requests to work within resource constraints:
 
 ```bash
-# Install nginx ingress with SSL passthrough enabled
+# Install nginx ingress with SSL passthrough enabled and reduced CPU requests
 helm upgrade --install ingress-nginx ingress-nginx \
     --repo https://kubernetes.github.io/ingress-nginx \
     --namespace ingress-nginx --create-namespace \
     --set controller.extraArgs.enable-ssl-passthrough=true \
     --set controller.service.type=NodePort \
-    --set controller.service.nodePorts.https=30443
+    --set controller.service.nodePorts.https=30443 \
+    --set controller.resources.requests.cpu=50m
 
 # Wait for ingress controller to be ready
 kubectl wait --namespace ingress-nginx \
@@ -51,6 +52,17 @@ helm upgrade --install ks-core oci://ghcr.io/kubestellar/kubestellar/core-chart 
     --set-json ITSes='[{"name":"its1"}]' \
     --set-json WDSes='[{"name":"wds1"}]' \
     --set verbosity.default=5
+```{{exec}}
+
+## Optimize Resource Usage for Limited CPU Environment
+
+To work within CPU constraints, we'll reduce resource requests for some components:
+
+```bash
+# Reduce PostgreSQL CPU request to free up resources
+kubectl patch statefulset postgres-postgresql -n kubeflex-system -p '{"spec":{"template":{"spec":{"containers":[{"name":"postgresql","resources":{"requests":{"cpu":"200m"}}}]}}}}' 2>/dev/null || echo "PostgreSQL not ready yet, will retry after control planes are created"
+
+echo "✅ Resource optimizations applied"
 ```{{exec}}
 
 ## Wait for Control Planes to Be Created

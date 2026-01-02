@@ -48,6 +48,8 @@ This environment comes with:
 
 **Note**: KubeStellar control planes can take 5-10 minutes to become ready. This is normal and depends on resource availability. The environment has been optimized for faster startup.
 
+**Resource Requirements**: KubeStellar requires significant CPU resources. This tutorial uses resource optimizations to work within the available resources. If you encounter CPU constraint issues, the control planes may take longer to become ready.
+
 We'll install KubeStellar components during the tutorial.
 
 **Ready to simplify your multi-cluster journey? Let's get started!** 🎯
