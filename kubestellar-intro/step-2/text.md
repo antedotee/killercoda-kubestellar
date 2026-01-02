@@ -56,13 +56,19 @@ helm upgrade --install ks-core oci://ghcr.io/kubestellar/kubestellar/core-chart 
 
 ## Optimize Resource Usage for Limited CPU Environment
 
-To work within CPU constraints, we'll reduce resource requests for some components:
+To work within CPU constraints, we need to aggressively reduce resource requests. The killercoda environment has limited CPU, so we'll optimize multiple components:
 
 ```bash
-# Reduce PostgreSQL CPU request to free up resources
-kubectl patch statefulset postgres-postgresql -n kubeflex-system -p '{"spec":{"template":{"spec":{"containers":[{"name":"postgresql","resources":{"requests":{"cpu":"200m"}}}]}}}}' 2>/dev/null || echo "PostgreSQL not ready yet, will retry after control planes are created"
+# Wait a moment for resources to be created
+sleep 10
 
-echo "✅ Resource optimizations applied"
+# Reduce PostgreSQL CPU request (from 250m to 150m)
+kubectl patch statefulset postgres-postgresql -n kubeflex-system -p '{"spec":{"template":{"spec":{"containers":[{"name":"postgresql","resources":{"requests":{"cpu":"150m"}}}]}}}}' 2>/dev/null || echo "PostgreSQL not ready yet"
+
+# Temporarily scale down ingress-nginx to free up 50m CPU for control planes
+kubectl scale deployment ingress-nginx-controller -n ingress-nginx --replicas=0 2>/dev/null || echo "Ingress not ready yet"
+
+echo "✅ Resource optimizations applied - ingress scaled down temporarily"
 ```{{exec}}
 
 ## Wait for Control Planes to Be Created
@@ -73,6 +79,29 @@ Wait for the Helm chart to create the control plane resources:
 echo "Waiting for control planes to be created..."
 timeout 180 bash -c 'until kubectl get controlplane wds1 &>/dev/null && kubectl get controlplane its1 &>/dev/null; do echo "Waiting for control planes..."; sleep 5; done'
 kubectl get controlplanes
+```{{exec}}
+
+## Reduce Resource Requests for Control Plane Pods
+
+Before waiting for readiness, reduce CPU requests for the control plane pods to help them schedule:
+
+```bash
+# Reduce vcluster CPU request (for its1) - wait for StatefulSet to exist first
+echo "Waiting for vcluster StatefulSet to be created..."
+timeout 120 bash -c 'until kubectl get statefulset vcluster -n its1-system &>/dev/null 2>&1; do echo "Waiting..."; sleep 5; done' || echo "StatefulSet not created yet"
+
+# Reduce vcluster CPU requests using strategic merge patch
+# This reduces vcluster container from 200m to 100m and syncer to 50m
+kubectl patch statefulset vcluster -n its1-system --type='merge' -p='{"spec":{"template":{"spec":{"containers":[{"name":"vcluster","resources":{"requests":{"cpu":"100m"}}},{"name":"syncer","resources":{"requests":{"cpu":"50m"}}}]}}}}' 2>/dev/null || echo "vcluster StatefulSet not ready for patching (will retry)"
+
+# Reduce kube-controller-manager CPU request (for wds1) - wait for deployment to exist
+echo "Waiting for kube-controller-manager deployment..."
+timeout 120 bash -c 'until kubectl get deployment kube-controller-manager -n wds1-system &>/dev/null 2>&1; do echo "Waiting..."; sleep 5; done' || echo "Deployment not created yet"
+
+# Reduce kube-controller-manager CPU request from 200m to 100m
+kubectl patch deployment kube-controller-manager -n wds1-system -p '{"spec":{"template":{"spec":{"containers":[{"name":"kube-controller-manager","resources":{"requests":{"cpu":"100m"}}}]}}}}' 2>/dev/null || echo "kube-controller-manager not ready for patching"
+
+echo "✅ Control plane resource optimizations applied"
 ```{{exec}}
 
 ## Wait for Control Planes to Be Ready
@@ -104,6 +133,23 @@ kubectl config use-context controlplane
 kflex ctx --set-current-for-hosting
 kflex ctx --overwrite-existing-context wds1
 kflex ctx --overwrite-existing-context its1
+```{{exec}}
+
+## Restore Ingress Controller
+
+Now that control planes are ready, restore the ingress controller:
+
+```bash
+# Scale ingress-nginx back up
+kubectl scale deployment ingress-nginx-controller -n ingress-nginx --replicas=1
+
+# Wait for ingress to be ready
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=300s
+
+echo "✅ Ingress controller restored"
 ```{{exec}}
 
 ## Wait for ITS Initialization
