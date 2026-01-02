@@ -4,13 +4,12 @@ KubeStellar requires several CLI tools. Let's install them following the officia
 
 ## Install KubeFlex CLI (kflex)
 
-Installing kflex version 0.9.0 to avoid breaking changes:
+Installing kflex using the official installation script:
 
 ```bash
-curl -Lf --max-time 30 -o kflex.tar.gz "https://github.com/kubestellar/kubeflex/releases/download/v0.9.0/kubeflex_0.9.0_linux_amd64.tar.gz" || curl -Lf --max-time 30 -o kflex.tar.gz "https://github.com/kubestellar/kubeflex/releases/download/v0.9.0/kubeflex-v0.9.0-linux-amd64.tar.gz"
-tar xzf kflex.tar.gz
-sudo install -o root -g root -m 0755 bin/kflex /usr/local/bin/kflex
-rm -rf bin kflex.tar.gz
+sudo su <<EOF
+bash <(curl -s https://raw.githubusercontent.com/kubestellar/kubeflex/main/scripts/install-kubeflex.sh) --ensure-folder /usr/local/bin --strip-bin
+EOF
 kflex version
 ```{{exec}}
 
@@ -28,6 +27,17 @@ clusteradm version
 ```bash
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 helm version
+```{{exec}}
+
+## Install kind
+
+kind is needed to create workload execution clusters:
+
+```bash
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
+kind version
 ```{{exec}}
 
 ## Verify kubectl

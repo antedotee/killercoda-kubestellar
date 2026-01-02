@@ -32,4 +32,10 @@ if ! kubectl version --client &> /dev/null; then
     exit 1
 fi
 
+# Check kind
+if ! command -v kind &> /dev/null; then
+    echo "❌ kind not found"
+    exit 1
+fi
+
 echo "✅ All prerequisites installed and working!"

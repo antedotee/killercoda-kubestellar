@@ -15,9 +15,9 @@ if ! kubectl --context wds1 get bindingpolicies &> /dev/null; then
     exit 1
 fi
 
-# Check control planes are ready
-WDS1_READY=$(kubectl get controlplane wds1 -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "False")
-ITS1_READY=$(kubectl get controlplane its1 -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "False")
+# Check control planes are ready (from hosting cluster context)
+WDS1_READY=$(kubectl --context controlplane get controlplane wds1 -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "False")
+ITS1_READY=$(kubectl --context controlplane get controlplane its1 -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "False")
 
 if [ "$WDS1_READY" != "True" ]; then
     echo "❌ wds1 control plane not ready"

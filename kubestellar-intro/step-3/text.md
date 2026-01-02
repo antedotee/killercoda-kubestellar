@@ -29,9 +29,14 @@ Wait for CSRs to appear, then approve them:
 
 ```bash
 echo "Waiting for CSRs to appear..."
-while [ $(kubectl --context its1 get csr 2>/dev/null | grep -c "cluster1\|cluster2") -lt 2 ]; do
-    echo "Waiting for CSRs..."
-    sleep 5
+while true; do
+    kubectl --context its1 get csr
+    if [ $(kubectl --context its1 get csr 2>/dev/null | grep -c "Pending") -ge 2 ]; then
+        echo "Both CSRs found."
+        break
+    fi
+    echo "Waiting for CSRs to appear..."
+    sleep 10
 done
 
 # Approve CSRs

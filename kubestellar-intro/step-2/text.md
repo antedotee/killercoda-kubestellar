@@ -17,6 +17,28 @@ Unlike other multi-cluster solutions that require wrapping workloads or learning
 export kubestellar_version=0.29.0
 ```{{exec}}
 
+## Install nginx Ingress with SSL Passthrough
+
+KubeStellar requires nginx ingress with SSL passthrough enabled on the hosting cluster. Let's install and configure it using Helm:
+
+```bash
+# Install nginx ingress with SSL passthrough enabled
+helm upgrade --install ingress-nginx ingress-nginx \
+    --repo https://kubernetes.github.io/ingress-nginx \
+    --namespace ingress-nginx --create-namespace \
+    --set controller.extraArgs.enable-ssl-passthrough=true \
+    --set controller.service.type=NodePort \
+    --set controller.service.nodePorts.https=30443
+
+# Wait for ingress controller to be ready
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=300s
+
+echo "✅ nginx ingress with SSL passthrough is ready"
+```{{exec}}
+
 ## Install KubeStellar Core using Helm Chart
 
 The Core Helm chart installs both KubeFlex operator and KubeStellar components. This creates two control planes:
@@ -41,36 +63,6 @@ timeout 180 bash -c 'until kubectl get controlplane wds1 &>/dev/null && kubectl 
 kubectl get controlplanes
 ```{{exec}}
 
-## Check KubeFlex Operator Status
-
-Before proceeding, verify the KubeFlex operator is running properly:
-
-```bash
-echo "Checking KubeFlex operator..."
-kubectl get pods -n kubeflex-system
-kubectl get deployment -n kubeflex-system
-```{{exec}}
-
-## Monitor Control Plane Progress
-
-Check the status and watch for progress. Control planes can take several minutes to become ready:
-
-```bash
-echo "Current control plane status:"
-kubectl get controlplanes -o wide
-
-echo "Checking control plane details..."
-kubectl describe controlplane wds1 | grep -A 10 "Status:"
-kubectl describe controlplane its1 | grep -A 10 "Status:"
-
-echo "Checking vcluster StatefulSet for its1..."
-kubectl get statefulset -n its1-system 2>/dev/null || echo "StatefulSet not created yet"
-kubectl get pods -n its1-system 2>/dev/null || echo "No pods yet"
-
-echo "Waiting for vcluster secret to be created (this is normal for vcluster type)..."
-timeout 300 bash -c 'until kubectl get secret vc-vcluster -n its1-system &>/dev/null 2>&1; do echo "Waiting for vcluster secret..."; sleep 5; done' || echo "Secret not ready yet, will retry"
-```{{exec}}
-
 ## Wait for Control Planes to Be Ready
 
 Wait for the API servers to be ready. This can take 5-10 minutes depending on resources:
@@ -78,49 +70,22 @@ Wait for the API servers to be ready. This can take 5-10 minutes depending on re
 ```bash
 echo "Waiting for wds1 to be ready (this may take 5-10 minutes)..."
 kubectl wait controlplane.tenancy.kflex.kubestellar.org/wds1 --for condition=Ready --timeout=900s || {
-    echo "⚠️  wds1 not ready yet. Checking pod status..."
-    kubectl get pods -n wds1-system
-    kubectl describe controlplane wds1 | tail -30
-}
-
-echo "Waiting for vcluster StatefulSet to be ready (this creates the secret)..."
-# Wait for StatefulSet to exist and be ready
-timeout 300 bash -c 'until kubectl get statefulset vcluster -n its1-system &>/dev/null 2>&1; do echo "Waiting for StatefulSet..."; sleep 5; done'
-kubectl wait statefulset/vcluster -n its1-system --for condition=ready --timeout=600s || {
-    echo "⚠️  StatefulSet not ready. Checking status..."
-    kubectl get statefulset -n its1-system
-    kubectl get pods -n its1-system
-}
-
-echo "Waiting for vcluster secret to be created..."
-timeout 180 bash -c 'until kubectl get secret vc-vcluster -n its1-system &>/dev/null 2>&1; do echo "Waiting for secret vc-vcluster..."; sleep 5; done' || {
-    echo "⚠️  Secret not created yet. Checking pods..."
-    kubectl get pods -n its1-system
-    kubectl logs -n its1-system -l app=vcluster --tail=20 2>/dev/null || echo "No logs yet"
-}
-
-echo "Now waiting for its1 to sync (after secret exists)..."
-kubectl wait controlplane.tenancy.kflex.kubestellar.org/its1 --for condition=Synced --timeout=300s || {
-    echo "⚠️  its1 sync still failing. Final diagnostics..."
-    kubectl get secret vc-vcluster -n its1-system || echo "Secret still missing"
-    kubectl describe controlplane its1 | tail -30
+    echo "⚠️  wds1 not ready yet. Checking status..."
+    kubectl get controlplanes
+    kubectl get pods -n wds1-system 2>/dev/null || echo "No pods yet"
 }
 
 echo "Waiting for its1 to be ready (this may take 5-10 minutes)..."
 kubectl wait controlplane.tenancy.kflex.kubestellar.org/its1 --for condition=Ready --timeout=900s || {
-    echo "⚠️  its1 not ready yet. Checking pod status..."
-    kubectl get pods -n its1-system -o wide
-    kubectl describe controlplane its1 | tail -30
-    echo "=== Checking if secret exists ==="
-    kubectl get secret vc-vcluster -n its1-system || echo "Secret still not found"
-    echo "=== Checking node status ==="
-    kubectl get nodes
+    echo "⚠️  its1 not ready yet. Checking status..."
+    kubectl get controlplanes
+    kubectl get pods -n its1-system 2>/dev/null || echo "No pods yet"
 }
 ```{{exec}}
 
 ## Get Kubeconfig Contexts
 
-Now that control planes are ready, set up contexts to access them:
+Now that control planes are ready, set up contexts to access them. First, ensure we're using the hosting cluster context, then create contexts for the control planes:
 
 ```bash
 kubectl config use-context controlplane
